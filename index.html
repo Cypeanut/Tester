@@ -1,0 +1,1845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Fayko's Kingdom</title>
+    <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Playfair+Display:wght@400;600;700&family=Nunito:wght@400;600&display=swap" rel="stylesheet">
+
+    <!-- Firebase SDK (compat, loaded before optimized.js) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js" defer></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js" defer></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js" defer></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            --bg-peach: #F5D5C5;
+            --bg-cream: #FFF8F0;
+            --paper-yellow: #FFFEF0;
+            --paper-line: #E8D5C4;
+            --brown: #8B6F5C;
+            --dark-brown: #5C4B3D;
+            --pink-accent: #E8A598;
+            --soft-pink: #F4C2C2;
+            --border-color: #D4A574;
+        }
+
+        html { font-size: 16px; }
+        @media (max-width: 380px) { html { font-size: 14px; } }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: linear-gradient(180deg, #F5D5C5 0%, #F8E6D8 100%);
+            min-height: 100vh;
+            color: var(--dark-brown);
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ==========================================
+           PASSCODE MODAL
+        ========================================== */
+        .passcode-overlay {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(180deg, #F5D5C5 0%, #F8E6D8 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            padding: 20px;
+        }
+
+        .passcode-modal {
+            background: var(--paper-yellow);
+            border-radius: 25px;
+            padding: 40px 30px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(139, 111, 92, 0.3), 0 0 0 6px rgba(255,255,255,0.5);
+            border: 2px solid var(--border-color);
+        }
+
+        .passcode-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.8rem;
+            color: var(--dark-brown);
+            margin-bottom: 10px;
+        }
+
+        .passcode-subtitle {
+            font-family: 'Patrick Hand', cursive;
+            color: var(--brown);
+            margin-bottom: 30px;
+            font-size: 1.1rem;
+        }
+
+        .passcode-input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid var(--border-color);
+            border-radius: 15px;
+            font-family: 'Patrick Hand', cursive;
+            font-size: 1.5rem;
+            text-align: center;
+            letter-spacing: 8px;
+            color: var(--dark-brown);
+            background: white;
+            margin-bottom: 20px;
+            -webkit-appearance: none;
+        }
+        .passcode-input:focus { outline: none; border-color: var(--pink-accent); }
+
+        .passcode-btn {
+            width: 100%;
+            padding: 15px;
+            background: var(--pink-accent);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-family: 'Patrick Hand', cursive;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(232, 165, 152, 0.4);
+        }
+        .passcode-btn:hover, .passcode-btn:active {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(232, 165, 152, 0.5);
+        }
+
+        .passcode-error {
+            color: #e74c3c;
+            font-family: 'Patrick Hand', cursive;
+            margin-top: 15px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .passcode-error.show { opacity: 1; }
+
+        /* ==========================================
+           HEADER ARCH
+        ========================================== */
+        .header-container {
+            background: linear-gradient(180deg, #F5D5C5 0%, #FFF8F0 100%);
+            border-radius: 0 0 50% 50% / 0 0 60px 60px;
+            padding: 15px 15px 50px;
+            position: relative;
+            margin-bottom: -30px;
+            box-shadow: 0 4px 20px rgba(139, 111, 92, 0.1);
+        }
+        @media (min-width: 768px) {
+            .header-container {
+                border-radius: 0 0 50% 50% / 0 0 100px 100px;
+                padding: 25px 25px 70px;
+                margin-bottom: -50px;
+            }
+        }
+
+        .header-inner { max-width: 1200px; margin: 0 auto; text-align: center; }
+
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            color: var(--dark-brown);
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 15px;
+            letter-spacing: 1px;
+            transform: rotate(-1deg);
+        }
+        @media (min-width: 768px) { h1 { font-size: 3rem; margin-bottom: 20px; } }
+
+        nav { display: flex; justify-content: center; }
+        nav a {
+            text-decoration: none;
+            color: var(--dark-brown);
+            font-family: 'Patrick Hand', cursive;
+            font-size: 1.1rem;
+            padding: 8px 30px;
+            border-radius: 25px;
+            background: #E8D5C4;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+        nav a:hover, nav a.active { background: var(--pink-accent); color: white; }
+
+        /* ==========================================
+           MAIN CONTAINER
+        ========================================== */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            position: relative;
+            z-index: 1;
+        }
+        @media (min-width: 1024px) {
+            .main-container {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 25px;
+                padding: 20px;
+            }
+        }
+
+        /* ==========================================
+           CARD STYLES
+        ========================================== */
+        .card {
+            background: rgba(255, 248, 240, 0.95);
+            border-radius: 20px;
+            padding: 18px;
+            box-shadow: 0 4px 20px rgba(139, 111, 92, 0.15), inset 0 0 0 1px rgba(255,255,255,0.8);
+            border: 2px solid var(--border-color);
+        }
+        @media (min-width: 768px) { .card { padding: 25px; border-radius: 25px; } }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        @media (min-width: 768px) { .card-header { margin-bottom: 20px; } }
+
+        .card-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.1rem;
+            color: var(--dark-brown);
+            letter-spacing: 1px;
+        }
+        @media (min-width: 768px) { .card-title { font-size: 1.3rem; } }
+
+        .flower-decor { font-size: 1.2rem; color: var(--pink-accent); }
+
+        /* ==========================================
+           LEFT COLUMN
+        ========================================== */
+        .left-column { display: flex; flex-direction: column; gap: 15px; }
+        @media (min-width: 768px) { .left-column { gap: 20px; } }
+
+        .left-content { display: flex; flex-direction: column; gap: 15px; }
+        @media (min-width: 768px) { .left-content { gap: 20px; } }
+
+        .top-section { display: flex; flex-direction: column; gap: 15px; }
+        @media (min-width: 768px) and (max-width: 1023px) {
+            .top-section { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        }
+        @media (min-width: 1024px) {
+            .top-section { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        }
+
+        /* ==========================================
+           NOTEBOOK PAPER
+        ========================================== */
+        .notebook-paper {
+            background: var(--paper-yellow);
+            border-radius: 12px;
+            padding: 15px 15px 15px 35px;
+            position: relative;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1), inset 0 0 60px rgba(232, 213, 196, 0.2);
+            border: 1px solid #E8D5C4;
+        }
+        @media (min-width: 768px) { .notebook-paper { border-radius: 15px; padding: 20px 20px 20px 40px; } }
+
+        .notebook-paper::before {
+            content: '';
+            position: absolute;
+            left: 25px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #FFB6C1;
+            opacity: 0.4;
+        }
+        @media (min-width: 768px) { .notebook-paper::before { left: 30px; } }
+
+        .paper-holes { position: absolute; left: 8px; top: 15px; display: flex; flex-direction: column; gap: 18px; }
+        @media (min-width: 768px) { .paper-holes { left: 10px; top: 20px; gap: 25px; } }
+
+        .hole {
+            width: 6px;
+            height: 6px;
+            background: #D4A574;
+            border-radius: 50%;
+            box-shadow: inset 1px 1px 2px rgba(0,0,0,0.2);
+        }
+        @media (min-width: 768px) { .hole { width: 8px; height: 8px; } }
+
+        .paper-title {
+            font-family: 'Patrick Hand', cursive;
+            font-size: 1.1rem;
+            color: var(--dark-brown);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .paper-content {
+            font-family: 'Patrick Hand', cursive;
+            font-size: 0.95rem;
+            line-height: 1.7;
+            color: var(--dark-brown);
+        }
+
+        .paper-item { margin-bottom: 6px; display: flex; align-items: flex-start; gap: 5px; }
+
+        .curl-corner {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 30px;
+            height: 30px;
+            background: linear-gradient(135deg, transparent 50%, #E8D5C4 50%);
+            border-radius: 0 0 12px 0;
+            box-shadow: -2px -2px 5px rgba(0,0,0,0.1);
+        }
+        @media (min-width: 768px) { .curl-corner { width: 40px; height: 40px; border-radius: 0 0 15px 0; } }
+
+        /* ==========================================
+           NOTES CARD
+        ========================================== */
+        .notes-card {
+            background: var(--paper-yellow);
+            border-radius: 12px;
+            padding: 15px;
+            position: relative;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border: 1px solid #E8D5C4;
+        }
+        @media (min-width: 768px) { .notes-card { border-radius: 15px; padding: 20px; } }
+
+        .notes-lines {
+            background-image: repeating-linear-gradient(transparent, transparent 26px, #E8D5C4 26px, #E8D5C4 27px);
+            line-height: 27px;
+            padding-left: 5px;
+            overflow-wrap: break-word;
+        }
+        @media (min-width: 768px) {
+            .notes-lines {
+                background-image: repeating-linear-gradient(transparent, transparent 28px, #E8D5C4 28px, #E8D5C4 29px);
+                line-height: 29px;
+                padding-left: 10px;
+            }
+        }
+
+        .notes-content {
+            font-family: 'Patrick Hand', cursive;
+            font-size: 0.9rem;
+            color: var(--dark-brown);
+            min-height: 120px;
+            white-space: pre-wrap;
+        }
+        @media (min-width: 768px) { .notes-content { font-size: 0.95rem; min-height: 150px; } }
+
+        .edit-container { display: flex; justify-content: flex-end; margin-top: 10px; gap: 10px; }
+
+        .edit-btn {
+            background: #F4E4D4;
+            border: 2px solid var(--border-color);
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            -webkit-touch-callout: none;
+        }
+        @media (min-width: 768px) { .edit-btn { width: 50px; height: 50px; font-size: 1.2rem; } }
+        .edit-btn:hover, .edit-btn:active { transform: scale(1.1) rotate(10deg); background: var(--soft-pink); }
+        .edit-btn.delete-btn:hover, .edit-btn.delete-btn:active { background: #ff6b6b; color: white; }
+
+        /* ==========================================
+           TIME COUNTER
+        ========================================== */
+        .time-section {
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 15px;
+            padding: 15px;
+            text-align: center;
+            border: 2px solid var(--border-color);
+        }
+        @media (min-width: 768px) { .time-section { border-radius: 20px; padding: 20px; } }
+
+        .time-title { font-family: 'Patrick Hand', cursive; font-size: 1rem; color: var(--dark-brown); margin-bottom: 12px; }
+        @media (min-width: 768px) { .time-title { font-size: 1.1rem; margin-bottom: 15px; } }
+
+        .time-boxes { display: flex; justify-content: center; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+        @media (min-width: 768px) { .time-boxes { gap: 10px; margin-bottom: 10px; } }
+
+        .time-box {
+            background: white;
+            border-radius: 8px;
+            padding: 8px 10px;
+            min-width: 50px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border: 1px solid var(--border-color);
+        }
+        @media (min-width: 375px) { .time-box { min-width: 55px; padding: 10px 12px; } }
+        @media (min-width: 768px) { .time-box { min-width: 60px; border-radius: 10px; padding: 10px 15px; } }
+
+        .time-value { font-family: 'Playfair Display', serif; font-size: 1.4rem; color: var(--dark-brown); font-weight: 600; }
+        @media (min-width: 768px) { .time-value { font-size: 1.8rem; } }
+
+        .time-label { font-family: 'Patrick Hand', cursive; font-size: 0.7rem; color: var(--brown); text-transform: uppercase; letter-spacing: 0.5px; }
+        @media (min-width: 768px) { .time-label { font-size: 0.8rem; letter-spacing: 1px; } }
+
+        .counting-text { font-family: 'Patrick Hand', cursive; color: var(--pink-accent); font-size: 0.85rem; }
+
+        /* ==========================================
+           RIGHT COLUMN
+        ========================================== */
+        .right-column { display: flex; flex-direction: column; gap: 15px; }
+        @media (min-width: 768px) { .right-column { gap: 20px; } }
+
+        /* ==========================================
+           GALLERY CARD
+        ========================================== */
+        .gallery-card {
+            background: rgba(255, 248, 240, 0.95);
+            border-radius: 20px;
+            padding: 15px;
+            border: 2px solid var(--border-color);
+            position: relative;
+        }
+        @media (min-width: 768px) { .gallery-card { border-radius: 25px; padding: 20px; } }
+
+        .gallery-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        @media (min-width: 768px) { .gallery-header { margin-bottom: 15px; } }
+
+        .sparkles { color: var(--pink-accent); font-size: 1rem; }
+        @media (min-width: 768px) { .sparkles { font-size: 1.2rem; } }
+
+        .gallery-wrapper { position: relative; overflow: hidden; }
+
+        .gallery-container {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            scroll-behavior: smooth;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            padding: 5px;
+            -webkit-overflow-scrolling: touch;
+            cursor: grab;
+        }
+        .gallery-container::-webkit-scrollbar { display: none; }
+        @media (min-width: 768px) { .gallery-container { gap: 15px; padding: 10px; } }
+
+        .gallery-item {
+            flex: 0 0 calc(33.333% - 7px);
+            min-width: 100px;
+            aspect-ratio: 1;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 3px solid white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15), inset 0 0 0 2px #D4A574;
+            position: relative;
+        }
+        @media (min-width: 375px) { .gallery-item { min-width: 110px; } }
+        @media (min-width: 768px) { .gallery-item { flex: 0 0 calc(33.333% - 10px); min-width: 150px; border-radius: 15px; border: 4px solid white; } }
+
+        .gallery-item img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+
+        .gallery-item .delete-img-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 30px;
+            height: 30px;
+            background: rgba(255, 107, 107, 0.9);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 10;
+        }
+        .gallery-item:hover .delete-img-btn, .gallery-item:active .delete-img-btn { opacity: 1; }
+
+        .gallery-arrow {
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            cursor: pointer;
+            font-size: 1rem;
+            color: var(--pink-accent);
+            border: 2px solid var(--soft-pink);
+            z-index: 10;
+        }
+        @media (min-width: 768px) { .gallery-arrow { right: -10px; width: 40px; height: 40px; font-size: 1.2rem; } }
+
+        .upload-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: var(--pink-accent);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-family: 'Patrick Hand', cursive;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 15px;
+            width: 100%;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(232, 165, 152, 0.4);
+        }
+        .upload-btn:hover, .upload-btn:active { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(232, 165, 152, 0.5); }
+        .upload-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .upload-input { display: none; }
+
+        /* ==========================================
+           LINKS CARD
+        ========================================== */
+        .links-card {
+            background: linear-gradient(135deg, #FFF8F0 0%, #F5E6D3 100%);
+            border-radius: 20px;
+            padding: 15px;
+            border: 2px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        @media (min-width: 768px) { .links-card { border-radius: 25px; padding: 20px; gap: 15px; } }
+
+        .links-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.1rem;
+            color: var(--dark-brown);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        @media (min-width: 768px) { .links-title { font-size: 1.3rem; } }
+
+        .sparkles-right { color: var(--pink-accent); margin-left: auto; }
+
+        .links-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        @media (min-width: 768px) { .links-grid { gap: 12px; } }
+
+        .link-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 15px 10px;
+            background: white;
+            border-radius: 15px;
+            text-decoration: none;
+            color: var(--dark-brown);
+            font-family: 'Patrick Hand', cursive;
+            font-size: 0.95rem;
+            border: 2px solid #E8D5C4;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            cursor: pointer;
+        }
+        .link-btn:hover, .link-btn:active { transform: translateY(-3px); border-color: var(--pink-accent); box-shadow: 0 6px 16px rgba(232,165,152,0.3); }
+
+        .link-icon { font-size: 1.8rem; }
+
+        /* ==========================================
+           HISTORY PANEL
+        ========================================== */
+        .history-container {
+            background: var(--paper-yellow);
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px solid #E8D5C4;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        @media (min-width: 768px) { .history-container { border-radius: 15px; padding: 18px; max-height: 250px; } }
+
+        .paper-clips { font-size: 1.2rem; margin-bottom: 8px; }
+
+        .history-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 0.85rem;
+            color: var(--brown);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+        }
+
+        .history-entry {
+            padding: 8px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+        .history-entry:hover { background: rgba(255,255,255,0.8); border-left-color: var(--pink-accent); transform: translateX(5px); }
+
+        .history-date { font-family: 'Patrick Hand', cursive; font-size: 0.75rem; color: var(--brown); }
+        .history-preview { font-family: 'Patrick Hand', cursive; font-size: 0.9rem; color: var(--dark-brown); }
+
+        .entry-actions {
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            gap: 4px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        .history-entry:hover .entry-actions, .history-entry.show-actions .entry-actions { opacity: 1; }
+
+        .entry-btn {
+            width: 28px;
+            height: 28px;
+            border: none;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: all 0.2s ease;
+        }
+        .entry-btn:hover { transform: scale(1.1); }
+
+        /* ==========================================
+           REMINDERS SECTION
+        ========================================== */
+        .reminders-card {
+            background: rgba(255, 248, 240, 0.95);
+            border-radius: 20px;
+            padding: 18px;
+            box-shadow: 0 4px 20px rgba(139, 111, 92, 0.15), inset 0 0 0 1px rgba(255,255,255,0.8);
+            border: 2px solid var(--border-color);
+            margin-top: 15px;
+        }
+        @media (min-width: 768px) { .reminders-card { padding: 25px; border-radius: 25px; margin-top: 20px; } }
+
+        .reminders-list { margin-top: 15px; display: flex; flex-direction: column; gap: 10px; }
+
+        .reminder-item {
+            background: var(--paper-yellow);
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px solid #E8D5C4;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        .reminder-item:hover { transform: translateX(5px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+
+        .reminder-title { font-family: 'Patrick Hand', cursive; font-size: 1.1rem; color: var(--dark-brown); margin-bottom: 5px; display: flex; align-items: center; gap: 8px; }
+        .reminder-content { font-family: 'Nunito', sans-serif; font-size: 0.9rem; color: var(--brown); line-height: 1.5; }
+        .reminder-actions { position: absolute; right: 10px; top: 10px; display: flex; gap: 5px; }
+
+        .reminder-btn {
+            width: 30px;
+            height: 30px;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            background: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .reminder-btn:hover { transform: scale(1.1); }
+        .reminder-btn.edit { color: var(--dark-brown); }
+        .reminder-btn.delete { color: #ff6b6b; }
+
+        .add-reminder-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: var(--bg-peach);
+            color: var(--dark-brown);
+            border: 2px dashed var(--border-color);
+            padding: 12px;
+            border-radius: 12px;
+            font-family: 'Patrick Hand', cursive;
+            font-size: 1rem;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+            transition: all 0.3s ease;
+        }
+        .add-reminder-btn:hover { background: var(--soft-pink); border-style: solid; color: white; }
+
+        /* ==========================================
+           MUSIC PLAYER SECTION
+        ========================================== */
+        .music-player-card {
+            background: linear-gradient(145deg, rgba(255,255,255,0.95), rgba(255,248,240,0.95));
+            border-radius: 20px;
+            padding: 20px;
+            border: 2px solid var(--border-color);
+            box-shadow: 0 10px 30px rgba(139, 111, 92, 0.1), inset 0 0 30px rgba(255,228,196,0.3);
+        }
+        @media (min-width: 768px) { .music-player-card { border-radius: 25px; padding: 25px; } }
+
+        .player-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .player-title { font-family: 'Playfair Display', serif; font-size: 1.2rem; color: var(--dark-brown); display: flex; align-items: center; gap: 8px; }
+        .music-icon { font-size: 1.4rem; }
+
+        /* Album Carousel */
+        .album-carousel {
+            position: relative;
+            height: 180px;
+            margin-bottom: 20px;
+            perspective: 1000px;
+            overflow: hidden;
+        }
+        @media (min-width: 768px) { .album-carousel { height: 200px; } }
+
+        .album-card {
+            position: absolute;
+            width: 140px;
+            height: 140px;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(145deg, #FFF8F0, #FFE4D6);
+            border-radius: 15px;
+            padding: 8px;
+            box-shadow: 0 10px 30px rgba(139, 111, 92, 0.2), inset 0 0 20px rgba(255,255,255,0.8);
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0;
+            cursor: pointer;
+            border: 2px solid white;
+        }
+        @media (min-width: 768px) { .album-card { width: 160px; height: 160px; } }
+
+        .album-card.active { opacity: 1; transform: translate(-50%, -50%) translateX(0) rotateY(0deg) scale(1); z-index: 10; }
+        .album-card.prev { opacity: 0.6; transform: translate(-50%, -50%) translateX(-120px) rotateY(25deg) scale(0.85); z-index: 5; }
+        @media (min-width: 768px) { .album-card.prev { transform: translate(-50%, -50%) translateX(-140px) rotateY(25deg) scale(0.85); } }
+        .album-card.next { opacity: 0.6; transform: translate(-50%, -50%) translateX(120px) rotateY(-25deg) scale(0.85); z-index: 5; }
+        @media (min-width: 768px) { .album-card.next { transform: translate(-50%, -50%) translateX(140px) rotateY(-25deg) scale(0.85); } }
+        .album-card.hidden { opacity: 0; transform: translate(-50%, -50%) translateX(0) scale(0.7); z-index: 0; }
+
+        .album-art {
+            width: 100%;
+            height: 85px;
+            background: linear-gradient(135deg, #FFB6C1, #FFC0CB, #FFE4E1);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            margin-bottom: 8px;
+            box-shadow: inset 0 0 20px rgba(255,255,255,0.5);
+            overflow: hidden;
+        }
+        @media (min-width: 768px) { .album-art { height: 95px; font-size: 3rem; } }
+        .album-art img { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; }
+
+        .album-info { text-align: center; }
+        .album-title { font-family: 'Patrick Hand', cursive; font-size: 0.9rem; color: var(--dark-brown); line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        @media (min-width: 768px) { .album-title { font-size: 1rem; } }
+        .album-artist { font-family: 'Nunito', sans-serif; font-size: 0.75rem; color: var(--brown); margin-top: 2px; }
+
+        /* Progress Section */
+        .progress-section { margin-bottom: 15px; }
+
+        .progress-bar-container {
+            position: relative;
+            height: 8px;
+            background: rgba(255,204,166,0.3);
+            border-radius: 4px;
+            cursor: pointer;
+            overflow: visible;
+            margin-bottom: 8px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(to right, var(--pink-accent), #E8957A);
+            border-radius: 4px;
+            width: 0%;
+            transition: width 0.1s linear;
+            position: relative;
+        }
+
+        .progress-handle {
+            position: absolute;
+            right: -8px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            background: white;
+            border: 3px solid var(--pink-accent);
+            border-radius: 50%;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            opacity: 0;
+            transition: opacity 0.3s ease, transform 0.2s ease;
+        }
+        .progress-bar-container:hover .progress-handle, .progress-bar-container:active .progress-handle { opacity: 1; }
+        .progress-handle.active { opacity: 1; transform: translateY(-50%) scale(1.2); }
+
+        .time-display { display: flex; justify-content: space-between; font-family: 'Patrick Hand', cursive; font-size: 0.9rem; color: var(--brown); }
+
+        /* Controls */
+        .player-controls { display: flex; justify-content: center; align-items: center; gap: 20px; margin-bottom: 15px; }
+
+        .control-btn {
+            background: linear-gradient(145deg, #FFF8F0, #FFE4D6);
+            border: none;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.1rem;
+            color: var(--dark-brown);
+            box-shadow: 0 4px 15px rgba(139, 111, 92, 0.15), inset 0 2px 5px rgba(255,255,255,0.8);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        @media (min-width: 768px) { .control-btn { width: 50px; height: 50px; font-size: 1.2rem; } }
+        .control-btn:hover, .control-btn:active { transform: scale(1.1); box-shadow: 0 6px 20px rgba(139, 111, 92, 0.25), inset 0 2px 5px rgba(255,255,255,0.9); }
+
+        .play-btn { width: 55px; height: 55px; font-size: 1.3rem; background: linear-gradient(145deg, var(--soft-pink), var(--pink-accent)); color: white; }
+        @media (min-width: 768px) { .play-btn { width: 60px; height: 60px; font-size: 1.5rem; } }
+
+        /* Volume Control */
+        .volume-section { display: flex; align-items: center; gap: 10px; padding: 0 10px; }
+        .volume-icon { font-size: 1.2rem; color: var(--brown); }
+
+        .volume-slider {
+            flex: 1;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: rgba(255,204,166,0.3);
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+        }
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: white;
+            border: 2px solid var(--pink-accent);
+            border-radius: 50%;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            cursor: pointer;
+        }
+        .volume-slider::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: white;
+            border: 2px solid var(--pink-accent);
+            border-radius: 50%;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            cursor: pointer;
+        }
+        .volume-value { font-family: 'Patrick Hand', cursive; font-size: 0.9rem; color: var(--brown); min-width: 35px; text-align: right; }
+
+        /* Playlist Toggle */
+        .playlist-toggle { text-align: center; margin-top: 15px; padding-top: 15px; border-top: 1px dashed var(--border-color); }
+
+        .playlist-btn {
+            background: transparent;
+            border: none;
+            font-family: 'Patrick Hand', cursive;
+            font-size: 1rem;
+            color: var(--brown);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            margin: 0 auto;
+            padding: 5px 15px;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+        }
+        .playlist-btn:hover, .playlist-btn:active { background: rgba(255,255,255,0.5); color: var(--dark-brown); }
+
+        /* Playlist Dropdown */
+        .playlist-container { max-height: 0; overflow: hidden; transition: max-height 0.4s ease; margin-top: 10px; }
+        .playlist-container.open { max-height: 400px; overflow-y: auto; }
+
+        .playlist-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: rgba(255,255,255,0.6);
+            border-radius: 10px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
+        }
+        .playlist-item:hover, .playlist-item:active { background: white; border-color: var(--pink-accent); transform: translateX(5px); }
+        .playlist-item.active { background: white; border-color: var(--pink-accent); box-shadow: 0 2px 10px rgba(232, 165, 152, 0.3); }
+
+        .playlist-number {
+            width: 25px;
+            height: 25px;
+            background: var(--bg-peach);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Patrick Hand', cursive;
+            font-size: 0.8rem;
+            color: var(--dark-brown);
+            flex-shrink: 0;
+        }
+        .playlist-item.active .playlist-number { background: var(--pink-accent); color: white; }
+
+        .playlist-info { flex: 1; overflow: hidden; }
+        .playlist-song { font-family: 'Patrick Hand', cursive; font-size: 0.95rem; color: var(--dark-brown); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .playlist-artist { font-family: 'Nunito', sans-serif; font-size: 0.8rem; color: var(--brown); }
+        .playlist-duration { font-family: 'Patrick Hand', cursive; font-size: 0.9rem; color: var(--brown); }
+
+        /* ==========================================
+           FOOTER
+        ========================================== */
+        footer {
+            text-align: center;
+            padding: 25px 15px;
+            margin-top: 30px;
+            font-family: 'Patrick Hand', cursive;
+            color: var(--dark-brown);
+            font-size: 0.9rem;
+            position: relative;
+        }
+        @media (min-width: 768px) { footer { padding: 30px 20px; margin-top: 40px; font-size: 1rem; } }
+
+        .social-links { display: flex; justify-content: center; gap: 15px; margin-top: 12px; }
+        @media (min-width: 768px) { .social-links { gap: 20px; margin-top: 15px; } }
+
+        .social-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--dark-brown);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            font-size: 0.8rem;
+            transition: transform 0.3s ease;
+        }
+        @media (min-width: 768px) { .social-icon { width: 35px; height: 35px; font-size: 0.9rem; } }
+        .social-icon:hover, .social-icon:active { transform: translateY(-3px); }
+
+        /* ==========================================
+           MODALS
+        ========================================== */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(92, 75, 61, 0.6);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            padding: 15px;
+        }
+        .modal-overlay.active { display: flex; opacity: 1; }
+
+        .modal {
+            background: var(--paper-yellow);
+            padding: 25px;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 450px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3), 0 0 0 6px rgba(255,255,255,0.5);
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+            border: 2px solid var(--border-color);
+            -webkit-overflow-scrolling: touch;
+        }
+        @media (min-width: 768px) { .modal { padding: 30px; border-radius: 25px; box-shadow: 0 20px 60px rgba(0,0,0,0.3), 0 0 0 8px rgba(255,255,255,0.5); } }
+        .modal-overlay.active .modal { transform: scale(1); }
+
+        .modal-title { font-family: 'Playfair Display', serif; font-size: 1.3rem; color: var(--dark-brown); text-align: center; margin-bottom: 20px; }
+        @media (min-width: 768px) { .modal-title { font-size: 1.5rem; margin-bottom: 25px; } }
+
+        .form-group { margin-bottom: 15px; }
+        .form-label { display: block; font-family: 'Patrick Hand', cursive; font-size: 1.05rem; color: var(--dark-brown); margin-bottom: 5px; }
+
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            font-family: 'Patrick Hand', cursive;
+            font-size: 1rem;
+            color: var(--dark-brown);
+            background: white;
+            -webkit-appearance: none;
+        }
+        .form-input:focus { outline: none; border-color: var(--pink-accent); }
+        textarea.form-input { min-height: 100px; resize: vertical; }
+
+        .modal-buttons { display: flex; gap: 12px; margin-top: 20px; }
+
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 25px;
+            font-family: 'Patrick Hand', cursive;
+            font-size: 1.05rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .btn-primary { background: var(--pink-accent); color: white; box-shadow: 0 4px 12px rgba(232, 165, 152, 0.4); }
+        .btn-secondary { background: var(--bg-peach); color: var(--dark-brown); }
+        .btn:hover, .btn:active { transform: translateY(-2px); }
+
+        /* View Note Modal Content */
+        .view-note-content {
+            font-family: 'Patrick Hand', cursive;
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: var(--dark-brown);
+            white-space: pre-wrap;
+            margin: 15px 0;
+            padding: 15px;
+            background: white;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+        .view-note-meta { text-align: center; color: var(--brown); font-family: 'Patrick Hand', cursive; font-size: 0.95rem; margin-bottom: 10px; }
+
+        /* Scrollbar styling */
+        .history-container::-webkit-scrollbar, .modal::-webkit-scrollbar, .playlist-container::-webkit-scrollbar, .reminders-card::-webkit-scrollbar { width: 6px; }
+        .history-container::-webkit-scrollbar-track, .modal::-webkit-scrollbar-track, .playlist-container::-webkit-scrollbar-track, .reminders-card::-webkit-scrollbar-track { background: transparent; }
+        .history-container::-webkit-scrollbar-thumb, .modal::-webkit-scrollbar-thumb, .playlist-container::-webkit-scrollbar-thumb, .reminders-card::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 10px; }
+
+        /* Touch device optimizations */
+        @media (hover: none) {
+            .link-btn:hover { transform: none; }
+            .link-btn:active { transform: translateY(-2px); }
+            .edit-btn:hover { transform: none; }
+            .edit-btn:active { transform: scale(1.1) rotate(10deg); }
+            .history-entry:hover { transform: none; }
+            .history-entry:active { transform: translateX(5px); }
+            .control-btn:hover { transform: none; }
+            .control-btn:active { transform: scale(1.1); }
+            .album-card:hover { transform: translate(-50%, -50%); }
+            .gallery-item .delete-img-btn { opacity: 1; width: 25px; height: 25px; font-size: 0.8rem; }
+            .entry-actions { opacity: 1 !important; }
+        }
+
+        /* Prevent text selection */
+        .gallery-arrow, .edit-btn, .link-btn, .history-entry, .social-icon, .control-btn, .album-card, .playlist-item {
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* Loading spinner */
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Admin-only elements */
+        .admin-only { display: none !important; }
+        body.admin-mode .admin-only { display: flex !important; }
+        body.admin-mode .admin-only.block { display: block !important; }
+        body.admin-mode .admin-only.grid { display: grid !important; }
+
+        /* Ticker */
+        .ticker-wrapper {
+            background: rgba(255, 248, 240, 0.8);
+            border-top: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border-color);
+            overflow: hidden;
+            padding: 8px 0;
+            margin-bottom: 15px;
+        }
+        .ticker-content {
+            display: inline-block;
+            white-space: nowrap;
+            animation: ticker 25s linear infinite;
+            font-family: 'Patrick Hand', cursive;
+            font-size: 0.95rem;
+            color: var(--dark-brown);
+            padding-right: 70px;
+        }
+        @keyframes ticker { 0% { transform: translateX(100vw); } 100% { transform: translateX(-100%); } }
+
+        /* Reminders minimize toggle */
+        .reminders-toggle-btn {
+            background: transparent;
+            border: none;
+            font-size: 1rem;
+            color: var(--brown);
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            font-family: 'Patrick Hand', cursive;
+            line-height: 1;
+        }
+        .reminders-toggle-btn:hover { background: rgba(0,0,0,0.05); }
+
+        .reminders-body {
+            overflow: hidden;
+            transition: max-height 0.4s ease, opacity 0.3s ease;
+            max-height: 2000px;
+            opacity: 1;
+        }
+        .reminders-body.minimized { max-height: 0; opacity: 0; }
+
+        /* Notebook paper reminders toggle */
+        .notebook-reminders-toggle-btn {
+            background: transparent;
+            border: none;
+            font-size: 0.9rem;
+            color: var(--brown);
+            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            line-height: 1;
+        }
+        .notebook-reminders-toggle-btn:hover { background: rgba(0,0,0,0.05); }
+
+        .notebook-reminders-body {
+            overflow: hidden;
+            transition: max-height 0.4s ease, opacity 0.3s ease;
+            max-height: 2000px;
+            opacity: 1;
+        }
+        .notebook-reminders-body.minimized { max-height: 0; opacity: 0; }
+
+        /* Reminder edit button inside notebook */
+        .notebook-edit-btn {
+            background: transparent;
+            border: none;
+            font-size: 0.9rem;
+            cursor: pointer;
+            padding: 2px 5px;
+            border-radius: 6px;
+            color: var(--brown);
+            transition: all 0.2s ease;
+        }
+        .notebook-edit-btn:hover { background: rgba(0,0,0,0.06); color: var(--dark-brown); }
+
+        /* Audio Note Section */
+        .audio-note-section {
+            overflow: hidden;
+            max-height: 0;
+            opacity: 0;
+            transition: max-height 0.4s ease, opacity 0.3s ease, margin-top 0.3s ease;
+            margin-top: 0;
+        }
+        .audio-note-section.open {
+            max-height: 400px;
+            opacity: 1;
+            margin-top: 10px;
+            padding-top: 15px;
+            border-top: 1px dashed var(--border-color);
+        }
+
+        .audio-note-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        .audio-note-label {
+            font-family: 'Patrick Hand', cursive;
+            font-size: 0.9rem;
+            color: var(--brown);
+            letter-spacing: 0.5px;
+        }
+        .audio-note-edit-btn {
+            background: transparent;
+            border: none;
+            font-size: 0.95rem;
+            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: 6px;
+            color: var(--brown);
+            transition: all 0.2s ease;
+            line-height: 1;
+        }
+        .audio-note-edit-btn:hover { background: rgba(0,0,0,0.06); color: var(--dark-brown); }
+
+        .audio-note-text {
+            font-family: 'Patrick Hand', cursive;
+            font-size: 1rem;
+            color: var(--dark-brown);
+            line-height: 1.7;
+            white-space: normal;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 10px;
+            padding: 10px 14px;
+            border: 1px solid #E8D5C4;
+            min-height: 42px;
+            max-height: 150px;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+            transition: opacity 0.25s ease;
+        }
+        .audio-note-text::-webkit-scrollbar { width: 5px; }
+        .audio-note-text::-webkit-scrollbar-track { background: transparent; }
+        .audio-note-text::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 10px; }
+        .audio-note-text.fading { opacity: 0; }
+
+        .auto-scroll-btn {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 2px 10px;
+            font-family: 'Patrick Hand', cursive;
+            font-size: 0.8rem;
+            color: var(--brown);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            line-height: 1.6;
+        }
+        .auto-scroll-btn:hover { background: rgba(0,0,0,0.05); color: var(--dark-brown); }
+        .auto-scroll-btn.active { background: var(--pink-accent); color: white; border-color: var(--pink-accent); }
+
+        /* Songs admin controls */
+        .playlist-item-actions { display: flex; gap: 4px; margin-left: auto; flex-shrink: 0; }
+        .playlist-del-btn {
+            width: 26px;
+            height: 26px;
+            border: none;
+            border-radius: 50%;
+            background: white;
+            color: #ff6b6b;
+            cursor: pointer;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+        .playlist-del-btn:hover { background: #ff6b6b; color: white; transform: scale(1.1); }
+
+        /* Links section header */
+        .links-header { display: flex; justify-content: space-between; align-items: center; }
+        .add-link-btn {
+            background: transparent;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: var(--pink-accent);
+            padding: 4px 8px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+        .add-link-btn:hover { background: rgba(232,165,152,0.15); }
+
+        .dynamic-link-btn { position: relative; }
+        .link-del-btn {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            width: 22px;
+            height: 22px;
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 0.7rem;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 5;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        body.admin-mode .link-del-btn { display: flex; }
+
+        .link-edit-btn {
+            position: absolute;
+            top: -6px;
+            left: -6px;
+            width: 22px;
+            height: 22px;
+            background: var(--pink-accent);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 0.7rem;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 5;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        body.admin-mode .link-edit-btn { display: flex; }
+
+        /* Loop button */
+        .control-btn#loopBtn.loop-on { opacity: 1; color: var(--pink-accent); }
+        #loopBtn.loop-on { opacity: 1; color: var(--pink-accent); }
+
+        /* Confirmation modal inputs */
+        .confirm-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            font-family: 'Patrick Hand', cursive;
+            font-size: 0.95rem;
+            color: var(--dark-brown);
+            background: white;
+            margin-top: 10px;
+        }
+        .confirm-input:focus { outline: none; border-color: var(--pink-accent); }
+
+        .confirm-hint {
+            font-family: 'Patrick Hand', cursive;
+            font-size: 0.85rem;
+            color: var(--brown);
+            margin-top: 6px;
+            font-style: italic;
+        }
+
+        /* App hidden until unlocked */
+        .app-hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <!-- Passcode Modal -->
+    <div class="passcode-overlay" id="passcodeOverlay">
+        <div class="passcode-modal">
+            <h2 class="passcode-title">✿ Faykoo ✿</h2>
+            <p class="passcode-subtitle">Enter passcode to enter Fayko's Kingdom</p>
+            <form onsubmit="checkPasscode(); return false;">
+                <input type="password" class="passcode-input" id="passcodeInput" placeholder="••••" maxlength="4" inputmode="numeric" pattern="[0-9]*">
+                <button type="submit" class="passcode-btn">Enter</button>
+            </form>
+            <p class="passcode-error" id="passcodeError">Incorrect passcode. Try again.</p>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <div class="header-container app-hidden" id="mainContent">
+        <div class="header-inner">
+            <h1>Fayko's Kingdom</h1>
+            <nav>
+                <a href="#home" class="active">HOME</a>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main-container app-hidden" id="mainContainer">
+
+        <!-- Left Column -->
+        <div class="left-column">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">DASHBOARD</h2>
+                    <span class="flower-decor">✿ ❀</span>
+                </div>
+
+                <div class="left-content">
+                    <div class="top-section">
+                        <!-- Reminders Notebook -->
+                        <div class="notebook-paper">
+                            <div class="paper-holes">
+                                <div class="hole"></div>
+                                <div class="hole"></div>
+                                <div class="hole"></div>
+                                <div class="hole"></div>
+                                <div class="hole"></div>
+                            </div>
+                            <div class="paper-title">
+                                REMINDERS FOR MY FAYKO
+                                <span style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
+                                    <button class="notebook-edit-btn admin-only" id="notebookEditBtn" onclick="openReminderEditModal()" title="Edit reminder">✏️</button>
+                                    <button class="notebook-reminders-toggle-btn" id="notebookToggleBtn" onclick="toggleNotebookReminders()" title="Toggle">▲</button>
+                                </span>
+                            </div>
+                            <div class="notebook-reminders-body" id="notebookRemindersBody">
+                                <div class="paper-content" id="remindersPreview">
+                                    <div class="paper-item">🌷 No reminders yet...</div>
+                                </div>
+                            </div>
+                            <div class="curl-corner"></div>
+                        </div>
+
+                        <!-- Notes for User -->
+                        <div class="notes-card">
+                            <div class="paper-title">NOTES</div>
+                            <div class="notes-lines">
+                                <div class="notes-content" id="notesDisplay">Loading notes...</div>
+                            </div>
+                            <div class="edit-container">
+                                <button class="edit-btn" onclick="openModal('edit')" title="Edit Note">✏️</button>
+                                <button class="edit-btn delete-btn admin-only" onclick="deleteCurrentNote()" title="Delete Note">🗑️</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Time Counter -->
+                    <div class="time-section">
+                        <div class="time-title">Time since we begun our journey:</div>
+                        <div class="time-boxes">
+                            <div class="time-box">
+                                <div class="time-value" id="months">00</div>
+                                <div class="time-label">Months</div>
+                            </div>
+                            <div class="time-box">
+                                <div class="time-value" id="days">00</div>
+                                <div class="time-label">Days</div>
+                            </div>
+                            <div class="time-box">
+                                <div class="time-value" id="hours">00</div>
+                                <div class="time-label">Hours</div>
+                            </div>
+                            <div class="time-box">
+                                <div class="time-value" id="minutes">00</div>
+                                <div class="time-label">Minutes</div>
+                            </div>
+                            <div class="time-box">
+                                <div class="time-value" id="seconds">00</div>
+                                <div class="time-label">Seconds</div>
+                            </div>
+                        </div>
+                        <div class="counting-text">(and counting!)</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reminders Section (Pinned Card) -->
+            <div class="reminders-card">
+                <div class="card-header">
+                    <h2 class="card-title">✨ Pinned</h2>
+                    <span style="display: flex; align-items: center; gap: 8px;">
+                        <span class="flower-decor">🌸</span>
+                        <button class="reminders-toggle-btn" id="remindersToggleBtn" onclick="toggleRemindersSection()" title="Toggle reminders">▲</button>
+                    </span>
+                </div>
+                <div class="reminders-body" id="remindersBody">
+                    <div class="reminders-list" id="remindersList"></div>
+                    <button class="add-reminder-btn admin-only block" onclick="openReminderModal()">
+                        <span>+</span> Add Reminder
+                    </button>
+                </div>
+            </div>
+
+            <!-- Music Player -->
+            <div class="music-player-card">
+                <div class="player-header">
+                    <h2 class="player-title">
+                        <span class="music-icon">🎵</span>
+                        Songs That Remind Me
+                    </h2>
+                    <span style="display:flex;align-items:center;gap:8px;">
+                        <button id="loopBtn" onclick="toggleLoop()" title="Loop off" style="background:transparent;border:none;font-size:0.85rem;font-family:'Patrick Hand',cursive;opacity:0.5;cursor:pointer;color:var(--dark-brown);padding:2px 4px;line-height:1;">🔁</button>
+                        <span class="sparkles">✦ ✦</span>
+                        <button class="add-reminder-btn admin-only" id="addSongBtn" onclick="openAddSongModal()" style="margin-top:0;padding:6px 14px;font-size:0.85rem;width:auto;border-radius:20px;">+ Song</button>
+                    </span>
+                </div>
+
+                <!-- Album Carousel -->
+                <div class="album-carousel" id="albumCarousel"></div>
+
+                <!-- Progress Bar -->
+                <div class="progress-section">
+                    <div class="progress-bar-container" id="progressBar">
+                        <div class="progress-fill" id="progressFill">
+                            <div class="progress-handle" id="progressHandle"></div>
+                        </div>
+                    </div>
+                    <div class="time-display">
+                        <span id="currentTime">0:00</span>
+                        <span id="totalTime">0:00</span>
+                    </div>
+                </div>
+
+                <!-- Controls -->
+                <div class="player-controls">
+                    <button class="control-btn" onclick="prevSong()" title="Previous">⏮</button>
+                    <button class="control-btn" onclick="seekBackward()" title="-10s" style="font-size:0.75rem;font-family:'Patrick Hand',cursive;">-10</button>
+                    <button class="control-btn play-btn" id="playBtn" onclick="togglePlay()" title="Play/Pause">▶</button>
+                    <button class="control-btn" onclick="seekForward()" title="+10s" style="font-size:0.75rem;font-family:'Patrick Hand',cursive;">+10</button>
+                    <button class="control-btn" onclick="nextSong()" title="Next">⏭</button>
+                </div>
+
+                <!-- Volume -->
+                <div class="volume-section">
+                    <span class="volume-icon" id="volumeIcon">🔊</span>
+                    <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="70" oninput="setVolume(this.value)">
+                    <span class="volume-value" id="volumeValue">70%</span>
+                </div>
+
+                <!-- Playlist Toggle -->
+                <div class="playlist-toggle">
+                    <button class="playlist-btn" onclick="togglePlaylist()">
+                        <span>View</span>
+                        <span id="playlistArrow">▼</span>
+                    </button>
+                </div>
+
+                <!-- Playlist -->
+                <div class="playlist-container" id="playlistContainer"></div>
+
+                <!-- Audio Note Toggle -->
+                <div class="playlist-toggle">
+                    <button class="playlist-btn" onclick="toggleAudioNote()">
+                        <span>View Note</span>
+                        <span id="audioNoteArrow">▼</span>
+                    </button>
+                </div>
+
+                <!-- Audio Note -->
+                <div class="audio-note-section" id="audioNoteSection">
+                    <div class="audio-note-header">
+                        <span class="audio-note-label">my note for my fayko</span>
+                        <span style="display:flex;align-items:center;gap:6px;">
+                            <button class="auto-scroll-btn" id="autoScrollBtn" onclick="toggleAutoScroll()" title="Toggle auto-scroll"> Auto Scroll</button>
+                            <button class="audio-note-edit-btn admin-only" id="audioNoteEditBtn" onclick="openAudioNoteModal()" title="Edit note">✏️</button>
+                        </span>
+                    </div>
+                    <div class="audio-note-text" id="audioNoteText">No message for this song yet 🌸</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column -->
+        <div class="right-column">
+            <!-- Gallery -->
+            <div class="gallery-card">
+                <div class="gallery-header">
+                    <h2 class="card-title">• • •</h2>
+                    <span class="sparkles">✦ ✦</span>
+                </div>
+                <div class="gallery-wrapper">
+                    <div class="gallery-container" id="gallery"></div>
+                    <div class="gallery-arrow" onclick="scrollGallery()">→</div>
+                </div>
+                <button class="upload-btn admin-only block" id="uploadBtn" onclick="openAddImageModal()">
+                    <span>🔗</span> Upload Image Link
+                </button>
+            </div>
+
+            <!-- Links Board & History -->
+            <div class="links-card">
+                <div class="links-header">
+                    <div class="links-title">
+                        Other
+                        <span class="sparkles-right">✦ ✦</span>
+                    </div>
+                    <span style="display:flex;align-items:center;gap:6px;">
+                        <button class="add-link-btn admin-only" onclick="openDeleteAudioFromLinksModal()" title="Delete a Song" style="color:#ff6b6b;">🗑</button>
+                        <button class="add-link-btn admin-only" onclick="openAddSongModal()" title="Add Song">🎵</button>
+                        <button class="add-link-btn admin-only" onclick="openAddLinkModal()" title="Add Link">+</button>
+                    </span>
+                </div>
+
+                <div class="links-grid" id="linksGrid"></div>
+
+                <!-- History Panel -->
+                <div class="history-container" id="historyContainer">
+                    <div class="paper-clips">📎</div>
+                    <div class="history-title">NOTES HISTORY</div>
+                    <div id="historyList"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Edit Note Modal -->
+    <div class="modal-overlay" id="editModal">
+        <div class="modal">
+            <h2 class="modal-title" id="noteModalTitle">✨ Create New Note</h2>
+            <form id="noteForm" onsubmit="saveNote(event)">
+                <div class="form-group">
+                    <label class="form-label">Title</label>
+                    <input type="text" class="form-input" id="noteTitle" required placeholder="Enter note title...">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Name</label>
+                    <input type="text" class="form-input" id="noteName" required placeholder="Your name...">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Note Content</label>
+                    <textarea class="form-input" id="noteContent" required placeholder="Your message..."></textarea>
+                </div>
+                <div class="modal-buttons">
+                    <button type="submit" class="btn btn-primary">Save</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('edit')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- View Note Modal -->
+    <div class="modal-overlay" id="viewModal">
+        <div class="modal">
+            <h2 class="modal-title" id="viewTitle">Note</h2>
+            <div class="view-note-meta" id="viewMeta"></div>
+            <div class="view-note-content" id="viewContent"></div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" onclick="closeModal('view')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reminder Modal -->
+    <div class="modal-overlay" id="reminderModal">
+        <div class="modal">
+            <h2 class="modal-title" id="reminderModalTitle">✨ Add Reminder</h2>
+            <form id="reminderForm" onsubmit="saveReminder(event)">
+                <input type="hidden" id="reminderId">
+                <div class="form-group">
+                    <label class="form-label">Title</label>
+                    <input type="text" class="form-input" id="reminderTitle" required placeholder="Enter reminder title...">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Content</label>
+                    <textarea class="form-input" id="reminderContent" required placeholder="Write your reminder..."></textarea>
+                </div>
+                <div class="modal-buttons">
+                    <button type="submit" class="btn btn-primary">Save</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('reminder')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Audio Note Edit Modal -->
+    <div class="modal-overlay" id="audioNoteModal">
+        <div class="modal">
+            <h2 class="modal-title" id="audioNoteModalTitle">🎵 Edit Note</h2>
+            <form id="audioNoteForm" onsubmit="saveAudioNote(event)">
+                <div class="form-group">
+                    <label class="form-label" id="audioNoteSongLabel">Song</label>
+                    <textarea class="form-input" id="audioNoteInput" placeholder="Write a message for this song...&#10;&#10;Formatting: &lt;b&gt;bold&lt;/b&gt;, &lt;u&gt;underline&lt;/u&gt;, &lt;hr&gt; for line" style="min-height: 160px;"></textarea>
+                </div>
+                <div class="modal-buttons">
+                    <button type="submit" class="btn btn-primary">Save</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('audioNote')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Notebook Reminder Edit Modal -->
+    <div class="modal-overlay" id="notebookReminderModal">
+        <div class="modal">
+            <h2 class="modal-title">✨ Edit Reminders</h2>
+            <form id="notebookReminderForm" onsubmit="saveNotebookReminder(event)">
+                <div class="form-group">
+                    <label class="form-label">Reminder Content</label>
+                    <textarea class="form-input" id="notebookReminderContent" required placeholder="Write reminders here..." style="min-height: 180px;"></textarea>
+                </div>
+                <div class="modal-buttons">
+                    <button type="submit" class="btn btn-primary">Save</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('notebookReminder')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Song Modal -->
+    <div class="modal-overlay" id="addSongModal">
+        <div class="modal">
+            <h2 class="modal-title">🎵 Add New Song</h2>
+            <form id="addSongForm" onsubmit="saveSong(event)">
+                <div class="form-group">
+                    <label class="form-label">Song Name</label>
+                    <input type="text" class="form-input" id="newSongTitle" required placeholder="Song title...">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Artist</label>
+                    <input type="text" class="form-input" id="newSongArtist" required placeholder="Artist name...">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">MP3 Link</label>
+                    <input type="url" class="form-input" id="newSongMp3" placeholder="https://... (mp3 URL)">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Album Art Image URL</label>
+                    <input type="url" class="form-input" id="newSongImage" placeholder="https://... (image URL)">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Audio Note (message for this song)</label>
+                    <textarea class="form-input" id="newSongAudioNote" placeholder="Write a personal message for this song..." style="min-height:100px;"></textarea>
+                </div>
+                <div class="modal-buttons">
+                    <button type="submit" class="btn btn-primary">Add Song</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('addSong')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Song Confirm Modal -->
+    <div class="modal-overlay" id="deleteSongModal">
+        <div class="modal">
+            <h2 class="modal-title">🗑️ Delete Song</h2>
+            <p style="font-family:'Patrick Hand',cursive;color:var(--brown);text-align:center;margin-bottom:10px;">To confirm deletion, type the phrase below:</p>
+            <p class="confirm-hint" style="text-align:center;">My one and only fayko</p>
+            <input type="text" class="confirm-input" id="deleteSongConfirmInput" placeholder="Type the phrase...">
+            <div class="modal-buttons" style="margin-top:15px;">
+                <button class="btn btn-primary" onclick="confirmDeleteSong()" style="background:#ff6b6b;">Delete</button>
+                <button class="btn btn-secondary" onclick="closeModal('deleteSong')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Link Modal -->
+    <div class="modal-overlay" id="addLinkModal">
+        <div class="modal">
+            <h2 class="modal-title" id="addLinkModalTitle">🔗 Add Link</h2>
+            <form id="addLinkForm" onsubmit="saveLink(event)">
+                <input type="hidden" id="editingLinkId">
+                <div class="form-group">
+                    <label class="form-label">Button Name</label>
+                    <input type="text" class="form-input" id="newLinkName" required placeholder="e.g. Birthday, Our Album...">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">URL</label>
+                    <input type="url" class="form-input" id="newLinkUrl" required placeholder="https://...">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Icon (emoji)</label>
+                    <input type="text" class="form-input" id="newLinkIcon" placeholder="🔗" maxlength="4">
+                </div>
+                <div class="modal-buttons">
+                    <button type="submit" class="btn btn-primary">Save</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('addLink')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Audio from Links Modal -->
+    <div class="modal-overlay" id="deleteAudioFromLinksModal">
+        <div class="modal">
+            <h2 class="modal-title">🗑️ Delete a Song</h2>
+            <p style="font-family:'Patrick Hand',cursive;color:var(--brown);text-align:center;margin-bottom:12px;">Select the song to remove:</p>
+            <div id="deleteSongPickerList" style="display:flex;flex-direction:column;gap:8px;max-height:220px;overflow-y:auto;margin-bottom:15px;"></div>
+            <p style="font-family:'Patrick Hand',cursive;color:var(--brown);text-align:center;margin-bottom:6px;">Then type to confirm:</p>
+            <p class="confirm-hint" style="text-align:center;">My one and only fayko</p>
+            <input type="text" class="confirm-input" id="deleteAudioFromLinksConfirmInput" placeholder="Type the phrase...">
+            <div class="modal-buttons" style="margin-top:15px;">
+                <button class="btn btn-primary" onclick="confirmDeleteAudioFromLinks()" style="background:#ff6b6b;">Delete</button>
+                <button class="btn btn-secondary" onclick="closeModal('deleteAudioFromLinks')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Image Link Modal -->
+    <div class="modal-overlay" id="addImageModal">
+        <div class="modal">
+            <h2 class="modal-title">🖼️ Add Image Link</h2>
+            <form id="addImageForm" onsubmit="saveImageLink(event)">
+                <div class="form-group">
+                    <label class="form-label">Image URL</label>
+                    <input type="url" class="form-input" id="newImageUrl" required placeholder="https://...">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Caption (optional)</label>
+                    <input type="text" class="form-input" id="newImageCaption" placeholder="Photo caption...">
+                </div>
+                <div class="modal-buttons">
+                    <button type="submit" class="btn btn-primary">Add Photo</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('addImage')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Link Confirm Modal -->
+    <div class="modal-overlay" id="deleteLinkModal">
+        <div class="modal">
+            <h2 class="modal-title">🗑️ Delete Link</h2>
+            <p style="font-family:'Patrick Hand',cursive;color:var(--brown);text-align:center;margin-bottom:10px;">To confirm deletion, type the phrase below:</p>
+            <p class="confirm-hint" style="text-align:center;">My one and only fayko</p>
+            <input type="text" class="confirm-input" id="deleteLinkConfirmInput" placeholder="Type the phrase...">
+            <div class="modal-buttons" style="margin-top:15px;">
+                <button class="btn btn-primary" onclick="confirmDeleteLink()" style="background:#ff6b6b;">Delete</button>
+                <button class="btn btn-secondary" onclick="closeModal('deleteLink')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="app-hidden" id="mainFooter">
+        <p>© For my one and only bisprin</p>
+        <div class="social-links">
+            <a href="#" class="social-icon" aria-label="">P</a>
+            <a href="#" class="social-icon" aria-label="">E</a>
+            <a href="#" class="social-icon" aria-label="">A</a>
+            <a href="#" class="social-icon" aria-label="">N</a>
+            <a href="#" class="social-icon" aria-label="">U</a>
+            <a href="#" class="social-icon" aria-label="">T</a>
+        </div>
+    </footer>
+
+    <!-- App Script (defer ensures Firebase SDK is ready first) -->
+    <script src="./js/optimized.js" defer></script>
+
+</body>
+</html>
